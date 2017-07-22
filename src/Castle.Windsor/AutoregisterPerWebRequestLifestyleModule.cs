@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#if !(SILVERLIGHT || CLIENTPROFILE || DOTNET35)
+#if FEATURE_SYSTEM_WEB
 
 using System.Web;
 

@@ -16,21 +16,19 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 {
 	using System;
 	using System.ComponentModel;
+	using System.Reflection;
 
 	using Castle.Core.Configuration;
 
 	/// <summary>
 	/// Attempts to utilize an existing <see cref="TypeConverter"/> for conversion
 	/// </summary>
-#if (!SILVERLIGHT)
 	[Serializable]
-#endif
 	public class ComponentModelConverter : AbstractTypeConverter
 	{
 		public override bool CanHandleType(Type type)
 		{
-			// Mono 1.9+ thinks it can convert strings to interface
-			if (type.IsInterface)
+			if (type.GetTypeInfo().IsInterface)
 			{
 				return false;
 			}

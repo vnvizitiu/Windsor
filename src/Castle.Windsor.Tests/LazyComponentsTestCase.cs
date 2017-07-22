@@ -27,7 +27,6 @@ namespace CastleTests
 
 	using NUnit.Framework;
 
-#if !DOTNET35
 	public class LazyComponentsTestCase : AbstractContainerTestCase
 	{
 		[Test]
@@ -121,7 +120,6 @@ namespace CastleTests
 			Assert.True(Kernel.ReleasePolicy.HasTrack(lazy));
 		}
 
-#if !SILVERLIGHT
 		[Test]
 		public void Implicit_lazy_is_initialized_once()
 		{
@@ -132,7 +130,6 @@ namespace CastleTests
 
 			Assert.AreEqual(LazyThreadSafetyMode.ExecutionAndPublication, mode);
 		}
-#endif
 
 		[Test]
 		public void Implicit_lazy_is_transient()
@@ -285,5 +282,4 @@ namespace CastleTests
 			return (LazyThreadSafetyMode) lazy.GetType().GetProperty("Mode", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(lazy, null);
 		}
 	}
-#endif
 }

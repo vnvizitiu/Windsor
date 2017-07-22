@@ -21,7 +21,7 @@ namespace Castle.Facilities.EventWiring
 
 	public static class EventWiringRegistrationExtensions
 	{
-#if !SILVERLIGHT
+#if FEATURE_REFLECTION_METHODBODY
 		public static ComponentRegistration<TPublisher> PublishEvent<TPublisher>(this ComponentRegistration<TPublisher> registration,
 		                                                                         Action<TPublisher> eventSubscribtion,
 		                                                                         Action<EventSubscribers> toSubscribers)
@@ -67,7 +67,7 @@ namespace Castle.Facilities.EventWiring
 			return registration;
 		}
 
-#if !SILVERLIGHT
+#if FEATURE_REFLECTION_METHODBODY
 		private static string GetEventName<TPublisher>(Action<TPublisher> eventSubscribtion)
 		{
 			string eventName;
@@ -82,7 +82,7 @@ namespace Castle.Facilities.EventWiring
 			catch (Exception)
 			{
 				throw new ArgumentException(
-					"Delegate given was not a method subscribption delegate. Please use something similar to: 'publisher => publisher += null'. " +
+					"Delegate given was not a method subscription delegate. Please use something similar to: 'publisher => publisher += null'. " +
 					"If you did, than it's probably a bug. Please use the other overload and specify name of the event as string.");
 			}
 			return eventName;

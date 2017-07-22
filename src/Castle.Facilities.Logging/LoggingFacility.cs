@@ -30,27 +30,25 @@ namespace Castle.Facilities.Logging
 	/// </summary>
 	public class LoggingFacility : AbstractFacility
 	{
-#if !SILVERLIGHT
-#if !CLIENTPROFILE
+#if CASTLE_SERVICES_LOGGING   //Castle.Services.Logging.Log4netIntegration and Castle.Services.Logging.NLogIntegration are not available for .NET Standard
 		private static readonly String ExtendedLog4NetLoggerFactoryTypeName =
 			"Castle.Services.Logging.Log4netIntegration.ExtendedLog4netFactory," +
-			"Castle.Services.Logging.Log4netIntegration,Version=3.3.0.0, Culture=neutral," +
+			"Castle.Services.Logging.Log4netIntegration,Version=4.0.0.0, Culture=neutral," +
 			"PublicKeyToken=407dd0808d44fbdc";
 
 		private static readonly String ExtendedNLogLoggerFactoryTypeName =
 			"Castle.Services.Logging.NLogIntegration.ExtendedNLogFactory," +
-			"Castle.Services.Logging.NLogIntegration,Version=3.3.0.0, Culture=neutral," +
+			"Castle.Services.Logging.NLogIntegration,Version=4.0.0.0, Culture=neutral," +
 			"PublicKeyToken=407dd0808d44fbdc";
 
 		private static readonly String Log4NetLoggerFactoryTypeName =
 			"Castle.Services.Logging.Log4netIntegration.Log4netFactory," +
-			"Castle.Services.Logging.Log4netIntegration,Version=3.3.0.0, Culture=neutral," +
+			"Castle.Services.Logging.Log4netIntegration,Version=4.0.0.0, Culture=neutral," +
 			"PublicKeyToken=407dd0808d44fbdc";
-#endif
 
 		private static readonly String NLogLoggerFactoryTypeName =
 			"Castle.Services.Logging.NLogIntegration.NLogFactory," +
-			"Castle.Services.Logging.NLogIntegration,Version=3.3.0.0, Culture=neutral," +
+			"Castle.Services.Logging.NLogIntegration,Version=4.0.0.0, Culture=neutral," +
 			"PublicKeyToken=407dd0808d44fbdc";
 #endif
 		private readonly string customLoggerFactoryTypeName;
@@ -166,8 +164,7 @@ namespace Castle.Facilities.Logging
 			return this;
 		}
 
-#if !SILVERLIGHT
-#if !CLIENTPROFILE
+#if CASTLE_SERVICES_LOGGING
 		public LoggingFacility UseLog4Net()
 		{
 			return LogUsing(LoggerImplementation.Log4net);
@@ -177,7 +174,6 @@ namespace Castle.Facilities.Logging
 		{
 			return UseLog4Net().WithConfig(configFile);
 		}
-#endif
 
 		public LoggingFacility UseNLog()
 		{
@@ -190,7 +186,7 @@ namespace Castle.Facilities.Logging
 		}
 #endif
 
-#if !SILVERLIGHT
+#if FEATURE_SYSTEM_CONFIGURATION
 		/// <summary>
 		///   loads configuration from current AppDomain's config file (aka web.config/app.config)
 		/// </summary>
@@ -336,21 +332,21 @@ namespace Castle.Facilities.Logging
 					return typeof(NullLogFactory);
 				case LoggerImplementation.Console:
 					return typeof(ConsoleFactory);
-#if !SILVERLIGHT
+#if FEATURE_EVENTLOG   //has dependency on Castle.Core.Logging.DiagnosticsLoggerFactory
 				case LoggerImplementation.Diagnostics:
 					return typeof(DiagnosticsLoggerFactory);
+#endif
 				case LoggerImplementation.Trace:
 					return typeof(TraceLoggerFactory);
+#if CASTLE_SERVICES_LOGGING
 				case LoggerImplementation.NLog:
 					return converter.PerformConversion<Type>(NLogLoggerFactoryTypeName);
-#if !CLIENTPROFILE
 				case LoggerImplementation.Log4net:
 					return converter.PerformConversion<Type>(Log4NetLoggerFactoryTypeName);
 				case LoggerImplementation.ExtendedLog4net:
 					return converter.PerformConversion<Type>(ExtendedLog4NetLoggerFactoryTypeName);
 				case LoggerImplementation.ExtendedNLog:
 					return converter.PerformConversion<Type>(ExtendedNLogLoggerFactoryTypeName);
-#endif
 #endif
 				default:
 					{

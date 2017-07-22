@@ -42,7 +42,7 @@ namespace Castle.Facilities.Logging.Tests
 		protected string GetConfigFile(LoggerImplementation loggerApi)
 		{
 			string configFile = string.Empty;
-#if !SILVERLIGHT
+#if CASTLE_SERVICES_LOGGING
 			switch (loggerApi)
 			{
 				case LoggerImplementation.NLog:
@@ -50,7 +50,6 @@ namespace Castle.Facilities.Logging.Tests
 					configFile = "LoggingFacility\\NLog.facilities.test.config";
 					break;
 				}
-#if !CLIENTPROFILE
 				case LoggerImplementation.Log4net:
 				{
 					configFile = "LoggingFacility\\log4net.facilities.test.config";
@@ -66,7 +65,6 @@ namespace Castle.Facilities.Logging.Tests
 					configFile = "LoggingFacility\\NLog.facilities.test.config";
 					break;
 				}
-#endif
 			}
 #endif
 			return configFile;

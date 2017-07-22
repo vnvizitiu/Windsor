@@ -21,13 +21,12 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 	using System.Reflection;
 	using System.Text;
 
+#if !FEATURE_APPDOMAIN
+	using Microsoft.Extensions.DependencyModel;
+#endif
+
 	using Castle.Core.Configuration;
 	using Castle.Core.Internal;
-
-#if DOTNET35
-	using System.Reflection.Emit; // needed for .NET 3.5
-	using System.Security;
-#endif
 
 	/// <summary>
 	///   Convert a type name to a Type instance.
@@ -35,7 +34,7 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 	[Serializable]
 	public class TypeNameConverter : AbstractTypeConverter
 	{
-		private static readonly Assembly mscorlib = typeof(object).Assembly;
+		private static readonly Assembly mscorlib = typeof(object).GetTypeInfo().Assembly;
 
 		private readonly HashSet<Assembly> assemblies = new HashSet<Assembly>();
 
@@ -46,11 +45,6 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 			new Dictionary<string, MultiType>(StringComparer.OrdinalIgnoreCase);
 
 		private readonly ITypeNameParser parser;
-
-#if DOTNET35
-		private static readonly Type AssemblyBuilderDotNet4 = Type.GetType("System.Reflection.Emit.InternalAssemblyBuilder",
-		                                                                   false, true);
-#endif
 
 		public TypeNameConverter(ITypeNameParser parser)
 		{
@@ -140,9 +134,10 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 		private bool InitializeAppDomainAssemblies(bool forceLoad)
 		{
 			var anyAssemblyAdded = false;
+#if FEATURE_APPDOMAIN
 			if (forceLoad || assemblies.Count == 0)
 			{
-				var loadedAssemblies = ReflectionUtil.GetLoadedAssemblies();
+				var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 				foreach (var assembly in loadedAssemblies)
 				{
 					if (assemblies.Contains(assembly) || ShouldSkipAssembly(assembly))
@@ -154,6 +149,29 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 					Scan(assembly);
 				}
 			}
+#else
+			if (assemblies.Count == 0)
+			{
+				var context = DependencyContext.Default;
+				var dependencies = context.RuntimeLibraries
+					.SelectMany(library => library.GetDefaultAssemblyNames(context))
+					.Distinct();
+
+				foreach (var assemblyName in dependencies)
+				{
+					if (ShouldSkipAssembly(assemblyName))
+					{
+						continue;
+					}
+
+					var assembly = Assembly.Load(assemblyName);
+
+					assemblies.Add(assembly);
+					Scan(assembly);
+					anyAssemblyAdded = true;
+				}
+			}
+#endif
 			return anyAssemblyAdded;
 		}
 
@@ -162,14 +180,16 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 			return assembly == mscorlib || assembly.FullName.StartsWith("System");
 		}
 
+		protected virtual bool ShouldSkipAssembly(AssemblyName assemblyName)
+		{
+			return assemblyName.FullName.StartsWith("System", StringComparison.Ordinal)
+				|| assemblyName.FullName.StartsWith("mscorlib", StringComparison.OrdinalIgnoreCase)
+				|| assemblyName.ContentType != AssemblyContentType.Default;
+		}
+
 		private void Scan(Assembly assembly)
 		{
-			// won't work for dynamic assemblies
-#if DOTNET35
-			if (assembly is AssemblyBuilder || (AssemblyBuilderDotNet4 != null && assembly.GetType().Equals(AssemblyBuilderDotNet4)))
-#else
 			if (assembly.IsDynamic)
-#endif
 			{
 				return;
 			}
@@ -184,8 +204,7 @@ namespace Castle.MicroKernel.SubSystems.Conversion
 			}
 			catch (NotSupportedException)
 			{
-				// uncaught dynamic assembly?
-				// this seems to happen when .NET 3.5 build runs on .NET 4...
+				// This might fail in an ASPNET scenario for Desktop CLR
 			}
 		}
 

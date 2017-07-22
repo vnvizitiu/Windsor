@@ -19,9 +19,7 @@ namespace Castle.Facilities.WcfIntegration.Tests
 	using System.ServiceModel;
 	using System.ServiceModel.Activation;
 	using System.ServiceModel.Description;
-#if !(SILVERLIGHT || DOTNET35)
 	using System.ServiceModel.Discovery;
-#endif
 	using Castle.Core.Resource;
 	using Castle.Facilities.Logging;
 	using Castle.Facilities.WcfIntegration.Behaviors;
@@ -34,7 +32,7 @@ namespace Castle.Facilities.WcfIntegration.Tests
 	using log4net.Config;
 	using NUnit.Framework;
 
-	[TestFixture]
+	[TestFixture, IntegrationTest]
 	public class ServiceHostFixture
 	{
 		private MemoryAppender memoryAppender;
@@ -296,7 +294,7 @@ namespace Castle.Facilities.WcfIntegration.Tests
 			}
 		}
 
-		[Test, Explicit("It doesn't not working 3.5. I guess that i shouldn't work, but need review.")]
+		[Test]
 		public void WillApplyServiceScopedBehaviorsToDefaultEndpoint()
 		{
 			CallCountServiceBehavior.CallCount = 0;
@@ -946,8 +944,8 @@ namespace Castle.Facilities.WcfIntegration.Tests
 				client.DoSomething();
 			}
 		}
-#if !(SILVERLIGHT || DOTNET35)
-		[Test]
+
+		[Test] // If you have jetbrains dotmemory installed this test might fail, it picks up another endpoint
 		public void WillRegisterServiceWithServiceCatalog()
 		{
 			var netBinding = new NetTcpBinding { PortSharingEnabled = true };
@@ -1018,7 +1016,7 @@ namespace Castle.Facilities.WcfIntegration.Tests
 				CollectionAssert.AreEqual(domain.Scopes, endpoint.Scopes);
 			}
 		}
-#endif
+
 		protected IWindsorContainer RegisterLoggingFacility(IWindsorContainer container)
 		{
 			var logging = new LoggingFacility(LoggerImplementation.ExtendedLog4net);

@@ -14,7 +14,6 @@
 
 namespace Castle.Facilities.WcfIntegration.Tests
 {
-#if !DOTNET35
 	using System;
 	using System.Collections.Generic;
 	using System.ServiceModel.Discovery;
@@ -22,7 +21,7 @@ namespace Castle.Facilities.WcfIntegration.Tests
 
 	using NUnit.Framework;
 
-	[TestFixture]
+	[TestFixture, IntegrationTest]
 	public class ContractLoadBalancePolicyFactoryTestCase
 	{
 		private class TestPolicy : ILoadBalancePolicy
@@ -122,11 +121,10 @@ namespace Castle.Facilities.WcfIntegration.Tests
 		}
 
 		[Test]
-		[ExpectedException(typeof(TypeInitializationException))]
 		public void WillRejectPoliciesWithoutContractConstructor()
 		{
-			new ContractLoadBalancePolicyFactory<TestPolicy>();
+			Assert.Throws<TypeInitializationException>(() =>
+				new ContractLoadBalancePolicyFactory<TestPolicy>());
 		}
 	}
-#endif
 }

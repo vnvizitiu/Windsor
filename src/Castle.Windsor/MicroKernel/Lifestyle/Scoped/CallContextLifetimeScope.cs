@@ -14,41 +14,37 @@
 
 namespace Castle.MicroKernel.Lifestyle.Scoped
 {
-#if !SILVERLIGHT
 	using System.Diagnostics;
 	using System.Globalization;
 	using System;
-#if DOTNET35
-	using System.Collections.Generic;
-#else
 	using System.Collections.Concurrent;
-#endif
+#if FEATURE_REMOTING
 	using System.Runtime.Remoting.Messaging;
+#endif
 	using System.Security;
+	using System.Threading;
+
 	using Castle.Core;
 	using Castle.Core.Internal;
 	using Castle.Windsor;
 
 	/// <summary>
-	///   Provides explicit lifetime scoping within logical path of execution. Used for types with <see
-	///    cref="LifestyleType.Scoped" /> .
+	///   Provides explicit lifetime scoping within logical path of execution. Used for types with <see cref="LifestyleType.Scoped" />.
 	/// </summary>
 	/// <remarks>
-	///   The scope is passed on to child threads, including ThreadPool threads. The capability is limited to single <see
-	///    cref="AppDomain" /> and should be used cautiously as call to <see cref="Dispose" /> may occur while the child thread is still executing, what in turn may lead to subtle threading bugs.
+	///   The scope is passed on to child threads, including ThreadPool threads. The capability is limited to single
+	///    AppDomain and should be used cautiously as call to <see cref="Dispose" /> may occur while the child thread is still executing, what in turn may lead to subtle threading bugs.
 	/// </remarks>
 	public class CallContextLifetimeScope : ILifetimeScope
 	{
-#if DOTNET35
-		private static readonly object cacheLocker = new object();
-		private static readonly Dictionary<Guid, CallContextLifetimeScope> appDomainLocalInstanceCache =
-			new Dictionary<Guid, CallContextLifetimeScope>();
-#else
 		private static readonly ConcurrentDictionary<Guid, CallContextLifetimeScope> appDomainLocalInstanceCache =
 			new ConcurrentDictionary<Guid, CallContextLifetimeScope>();
-#endif
 
+#if FEATURE_REMOTING
 		private static readonly string keyInCallContext = "castle.lifetime-scope-" + AppDomain.CurrentDomain.Id.ToString(CultureInfo.InvariantCulture);
+#else
+		private static readonly AsyncLocal<Guid> asyncLocal = new AsyncLocal<Guid>();
+#endif
 		private readonly Guid contextId;
 		private readonly Lock @lock = Lock.Create();
 		private readonly CallContextLifetimeScope parentScope;
@@ -56,7 +52,6 @@ namespace Castle.MicroKernel.Lifestyle.Scoped
 
 		public CallContextLifetimeScope(IKernel container) : this()
 		{
-
 		}
 
 		public CallContextLifetimeScope()
@@ -67,15 +62,8 @@ namespace Castle.MicroKernel.Lifestyle.Scoped
 				parentScope = parent;
 			}
 			contextId = Guid.NewGuid();
-#if DOTNET35
-			lock(cacheLocker)
-			{
-				appDomainLocalInstanceCache.Add(contextId, this);
-			}
-#else
 			var added = appDomainLocalInstanceCache.TryAdd(contextId, this);
 			Debug.Assert(added);
-#endif
 			SetCurrentScope(this);
 		}
 
@@ -100,21 +88,15 @@ namespace Castle.MicroKernel.Lifestyle.Scoped
 				{
 					SetCurrentScope(parentScope);
 				}
+#if FEATURE_REMOTING
 				else
 				{
 					CallContext.FreeNamedDataSlot(keyInCallContext);
 				}
+#endif
 			}
-#if DOTNET35
-			lock (cacheLocker)
-			{
-				appDomainLocalInstanceCache.Remove(contextId);
-			}
-#else
 			CallContextLifetimeScope @this;
 			appDomainLocalInstanceCache.TryRemove(contextId, out @this);
-#endif
-
 		}
 
 		public Burden GetCachedInstance(ComponentModel model, ScopedInstanceActivationCallback createInstance)
@@ -133,20 +115,24 @@ namespace Castle.MicroKernel.Lifestyle.Scoped
 			}
 		}
 		
-#if !CLIENTPROFILE
 		[SecuritySafeCritical]
-#endif
 		private void SetCurrentScope(CallContextLifetimeScope lifetimeScope)
 		{
+#if FEATURE_REMOTING
 			CallContext.LogicalSetData(keyInCallContext, lifetimeScope.contextId);
+#else
+			asyncLocal.Value = lifetimeScope.contextId;
+#endif
 		}
 
-#if !CLIENTPROFILE
 		[SecuritySafeCritical]
-#endif
 		public static CallContextLifetimeScope ObtainCurrentScope()
 		{
+#if FEATURE_REMOTING
 			var scopeKey = CallContext.LogicalGetData(keyInCallContext);
+#else
+			var scopeKey = asyncLocal.Value;
+#endif
 			if (scopeKey == null)
 			{
 				return null;
@@ -156,5 +142,4 @@ namespace Castle.MicroKernel.Lifestyle.Scoped
 			return scope;
 		}
 	}
-#endif
 }
